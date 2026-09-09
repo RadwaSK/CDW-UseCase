@@ -1,8 +1,8 @@
-"""Centralized application settings.
+"""Centralized application settings, read once from the environment.
 
-Loaded once from environment variables (see .env.example). No module in the
-application should read os.environ directly; import `settings` from here
-instead, so configuration stays auditable in one place.
+No module should read os.environ directly — import `settings` from here.
+Env vars always win over the .env file (pydantic-settings' own priority
+order), so conftest.py can load .env.test and it overrides .env untouched.
 """
 
 from functools import lru_cache
@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = "development"
-    database_url: str = "postgresql+psycopg://app:app@localhost:5432/cdw_usecase"
+    database_url: str
 
     llm_provider: str = "azure_openai"
 
@@ -31,7 +31,9 @@ class Settings(BaseSettings):
     langsmith_tracing: bool = False
     langsmith_api_key: str = ""
     langsmith_project: str = "cdw-usecase"
+    langsmith_endpoint: str = ""
 
+    use_fake_embeddings: bool = False
     cors_allow_origins: list[str] = ["http://localhost:5173"]
 
 
