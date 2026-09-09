@@ -1,8 +1,8 @@
 """Centralized application settings, read once from the environment.
 
 No module should read os.environ directly — import `settings` from here.
-Env vars always win over the .env file (pydantic-settings' own priority
-order), so conftest.py can load .env.test and it overrides .env untouched.
+Env vars always win over the .env file, so conftest.py can force test-only
+values (USE_FAKE_EMBEDDINGS, etc.) without touching .env itself.
 """
 
 from functools import lru_cache
@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     langsmith_endpoint: str = ""
 
     use_fake_embeddings: bool = False
+    embedding_dimension: int = 1536
+    sample_data_dir: str = "sample_data"
+    retrieval_top_k: int = 6
+    max_revisions: int = 1
+
     cors_allow_origins: list[str] = ["http://localhost:5173"]
 
 
