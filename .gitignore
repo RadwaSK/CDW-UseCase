@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Ignore root-level markdown notes (e.g. Claude-specific instructions) except README.md.
+# Markdown inside subfolders (docs/, sample_data/, etc.) is intentionally NOT ignored.
+/*.md
+!/README.md
