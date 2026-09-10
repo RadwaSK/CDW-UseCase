@@ -61,22 +61,11 @@ class DocumentChunk(Base):
     updated_at: Mapped[datetime] = mapped_column(default=_now, onupdate=_now)
 
 
-class AssessmentArtifact(Base):
-    """A structured intermediate/final output produced during an assessment run.
-
-    One row per artifact (architecture findings, risk findings, the plan, the
-    final report, ...) — added in Phase 2 when the graph nodes exist.
-    """
-
-    __tablename__ = "assessment_artifacts"
-
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
-    assessment_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False
-    )
-    artifact_type: Mapped[str] = mapped_column(String(64), nullable=False)
-    content: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(default=_now)
+# Intermediate artifacts (architecture findings, risk findings, the plan) are not
+# stored in their own table: LangGraph's Postgres checkpointer already persists
+# the full state after every node, and the final report is written to
+# assessments.state. A dedicated assessment_artifacts table existed here in
+# Phase 1 as a placeholder and was removed once those two mechanisms covered it.
 
 
 class TraceEvent(Base):

@@ -52,7 +52,7 @@ def db_session():
 
 @pytest.fixture(autouse=True)
 def _clean_assessments(db_session):
-    """Assessments (and their cascaded artifacts/trace/tickets) reset per test.
+    """Assessments (and their cascaded trace events / tickets) reset per test.
 
     document_chunks is intentionally left alone — ingestion is idempotent and
     session-scoped fixtures reuse it across tests instead of re-embedding.

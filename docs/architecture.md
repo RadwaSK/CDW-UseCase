@@ -119,6 +119,12 @@ LangGraph's `PostgresSaver` checkpoints after every node, keyed by `thread_id`,
 which is the assessment id. A run paused at the approval gate survives an API
 restart: `GET /assessments/{id}/state` reads the checkpoint back.
 
+This is also why there is no `assessment_artifacts` table. Intermediate outputs
+(architecture findings, risk findings, the plan) live in the checkpointed state;
+the final report is written once to `assessments.state` as JSONB. A dedicated
+per-artifact table was scaffolded in Phase 1 and removed once the checkpointer
+covered the same ground.
+
 Two details that were not obvious:
 
 - **Serialization allow-list.** The state carries Pydantic models. Without an
