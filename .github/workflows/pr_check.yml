@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+# No model credentials are configured anywhere in this workflow. The backend
+# tests and the evaluation both force fake embeddings and rule-based agents, so
+# CI is fully offline and costs nothing to run.
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+jobs:
+  backend:
+    name: Backend — lint, tests, offline evaluation
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: multi_agent_repo_reviewer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d multi_agent_repo_reviewer_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # "test" in the name is what the pytest guard checks before touching the DB.
+      DATABASE_URL: postgresql+psycopg://app:app@localhost:5432/multi_agent_repo_reviewer_test
+      # sample_data lives at the repo root, but the backend runs from ./backend.
+      SAMPLE_DATA_DIR: ${{ github.workspace }}/sample_data
+      USE_FAKE_EMBEDDINGS: "true"
+      USE_FAKE_LLM: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint
+        working-directory: backend
+        run: ruff check app tests
+
+      - name: Tests
+        working-directory: backend
+        run: pytest -q
+
+      - name: Offline evaluation
+        working-directory: backend
+        run: python -m app.evaluation.run
+
+      - name: Evaluation report (JSON)
+        if: always()
+        working-directory: backend
+        run: python -m app.evaluation.run --json > evaluation-report.json || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evaluation-report
+          path: backend/evaluation-report.json
+          if-no-files-found: warn
+
+  frontend:
+    name: Frontend — tests and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build

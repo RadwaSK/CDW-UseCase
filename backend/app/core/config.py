@@ -1,9 +1,5 @@
-"""Centralized application settings, read once from the environment.
-
-No module should read os.environ directly — import `settings` from here.
-Env vars always win over the .env file (pydantic-settings' own priority
-order), so conftest.py can load .env.test and it overrides .env untouched.
-"""
+"""Centralized settings — import `settings` rather than reading os.environ.
+Env vars win over .env, so conftest.py can force test-only values."""
 
 from functools import lru_cache
 
@@ -28,12 +24,22 @@ class Settings(BaseSettings):
     openai_chat_model: str = ""
     openai_embedding_model: str = ""
 
+    # LangSmith tracing config. This is the single source of truth; app.core.
+    # observability.configure_langsmith() copies it into the LANGSMITH_* env vars
+    # that LangChain reads, once at startup. Disabled by default and forced off
+    # in tests and the offline evaluation.
     langsmith_tracing: bool = False
     langsmith_api_key: str = ""
-    langsmith_project: str = "cdw-usecase"
+    langsmith_project: str = "multi-agent-repo-reviewer"
     langsmith_endpoint: str = ""
 
     use_fake_embeddings: bool = False
+    use_fake_llm: bool = False
+    embedding_dimension: int = 1536
+    sample_data_dir: str = "sample_data"
+    retrieval_top_k: int = 6
+    max_revisions: int = 1
+
     cors_allow_origins: list[str] = ["http://localhost:5173"]
 
 
