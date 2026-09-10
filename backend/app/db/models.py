@@ -61,13 +61,6 @@ class DocumentChunk(Base):
     updated_at: Mapped[datetime] = mapped_column(default=_now, onupdate=_now)
 
 
-# Intermediate artifacts (architecture findings, risk findings, the plan) are not
-# stored in their own table: LangGraph's Postgres checkpointer already persists
-# the full state after every node, and the final report is written to
-# assessments.state. A dedicated assessment_artifacts table existed here in
-# Phase 1 as a placeholder and was removed once those two mechanisms covered it.
-
-
 class TraceEvent(Base):
     """One row per node/tool-call step, for the sanitized execution trace panel."""
 
