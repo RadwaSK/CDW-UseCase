@@ -155,7 +155,7 @@ client can replace the mock without touching graph code.
 | No unapproved side effects | Routing edge sends only approved runs to `ticket`, **and** `ticket_node` independently re-checks the decision and raises otherwise |
 | No fabricated citations | Reviewer validates every `chunk_id` against the retrieved set |
 | No uncited findings | Pydantic `min_length=1` on every finding's `evidence` |
-| No prompt/PII leakage into traces | Trace payloads pass through an allow-list of ~19 keys (counts, names, durations); everything else is dropped, not stored |
+| No prompt/PII leakage into traces | Every node emits a sanitized `node_completed` or `node_failed` event; payloads pass through an allow-list of 19 keys (counts, names, durations), and a failure records only the exception's type, never its message |
 | No arbitrary file access | The UI selects from a fixed registry of sample apps; no path is accepted from the client |
 | No code execution | There is no shell or exec tool |
 | Approval means one thing | Approval authorizes a *simulated ticket only* — never code changes or deployment. Stated in the API docstring, the UI banner, and the ticket payload |
@@ -167,10 +167,13 @@ future edits.
 ## Determinism and cost
 
 `USE_FAKE_LLM` swaps the analyst/planner agents for rule-based detectors over the
-same retrieved evidence; `USE_FAKE_EMBEDDINGS` swaps in deterministic SHA-256
-pseudo-embeddings. Tests and the evaluation force both on and cannot be
-configured otherwise — `conftest.py` and `app/evaluation/run.py` set them before
-any `app.*` import, because `Settings` reads the environment at import time.
+same retrieved evidence; `USE_FAKE_EMBEDDINGS` swaps in a deterministic embedder
+that SHA-256-hashes each whitespace token into a normalized bag-of-tokens vector
+— not semantically meaningful, but stable, so near-identical text still scores
+high and retrieval logic can be tested offline. Tests and the evaluation force
+both on and cannot be configured otherwise — `conftest.py` and
+`app/evaluation/run.py` set them before any `app.*` import, because `Settings`
+reads the environment at import time.
 
 This is what makes the offline evaluation a real gate: it exercises the actual
 graph, retrieval, reviewer, policy, and tool code, with only the model boundary

@@ -18,7 +18,7 @@ class FakeEmbeddings:
     Not semantically meaningful — only stable, so retrieval logic and chunk
     metadata can be tested without calling Azure and without cosine
     similarity being pure noise (identical/near-identical text still scores
-    high on plain n-gram hashing).
+    high on plain token hashing).
     """
 
     def __init__(self, dimension: int = 1536):
