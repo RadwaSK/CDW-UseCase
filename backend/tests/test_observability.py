@@ -1,10 +1,6 @@
-"""LangSmith wiring: settings is the source of truth, and tests never trace.
-
-The suite must not emit LangSmith traces — it would add a network call per graph
-node to an otherwise offline run. conftest.py pins the flag off before any
-import; these tests confirm it stuck and that configure_langsmith() only ever
-mirrors settings, never re-enables tracing.
-"""
+"""The suite must never emit LangSmith traces. conftest.py pins the flag off
+before any import; these tests confirm it stuck and that configure_langsmith()
+mirrors settings without ever re-enabling tracing."""
 
 import os
 
@@ -24,7 +20,7 @@ _LANGSMITH_VARS = (
 
 @pytest.fixture(autouse=True)
 def _restore_langsmith_env():
-    """configure_langsmith() writes os.environ directly; put it back after each test."""
+    """configure_langsmith() writes os.environ directly; restore it after each test."""
     saved = {k: os.environ.get(k) for k in _LANGSMITH_VARS}
     yield
     for key, value in saved.items():

@@ -1,16 +1,7 @@
-"""Wire the LangSmith settings into the variables LangChain actually reads.
-
-`settings` (app.core.config) is the single source of truth for tracing
-configuration. LangChain's client discovers tracing from a fixed set of
-environment variable names, not from our Settings object, so this module copies
-the resolved settings into those names once, at application startup. Nothing
-else in the app should touch LangSmith configuration.
-
-Tests and the offline evaluation set ``LANGSMITH_TRACING=false`` in the
-environment *before* ``settings`` is constructed, so ``settings.langsmith_tracing``
-is already ``False`` for them and this only ever writes ``"false"``. It mirrors
-the settings; it can never override an opt-out.
-"""
+"""Copy settings.langsmith_* into the LANGSMITH_* env vars LangChain reads, once
+at startup. settings is the source of truth; nothing else touches LangSmith
+config. Tests and the evaluation pin LANGSMITH_TRACING=false before settings is
+built, so this can only ever mirror an opt-out, never override one."""
 
 import logging
 import os
@@ -21,11 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def configure_langsmith() -> None:
-    """Propagate ``settings.langsmith_*`` into the ``LANGSMITH_*`` environment.
-
-    Idempotent. Safe to call when tracing is disabled — it writes ``"false"`` and
-    leaves the credentials untouched.
-    """
+    """Propagate settings.langsmith_* into the environment. Idempotent."""
     enabled = settings.langsmith_tracing
     os.environ["LANGSMITH_TRACING"] = "true" if enabled else "false"
 

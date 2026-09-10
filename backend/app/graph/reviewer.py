@@ -1,10 +1,6 @@
-"""Evidence validation. Deliberately deterministic, not a model call.
-
-Asking an LLM whether its own output was grounded is the weakest possible check.
-Instead every citation is verified against the actual retrieved chunk ids, so a
-fabricated or dangling reference is caught mechanically in both fake and real
-mode.
-"""
+"""Evidence validation: deterministic, not a model call. Every citation is checked
+against the retrieved chunk ids, so a fabricated or dangling reference is caught
+mechanically — asking an LLM to grade its own grounding is the weakest check."""
 
 from app.models.evidence import RetrievedEvidence
 from app.models.findings import ArchitectureFinding, RiskFinding
@@ -56,9 +52,8 @@ def review(
 
     cleaned_plan = plan
     if plan is not None:
-        # An option that cites evidence which doesn't exist is dropped outright —
-        # an unsupported recommendation shouldn't survive with its citation quietly
-        # stripped, or the reader still sees a claim nothing backs.
+        # Drop an option with a dangling citation whole — stripping just the
+        # citation would leave a claim with nothing behind it.
         kept_options = []
         for option in plan.options:
             bad_refs = [r for r in option.evidence if r.chunk_id not in valid_ids]
@@ -90,8 +85,7 @@ def review(
 
         update = {"evidence": plan_refs_ok, "options": kept_options}
 
-        # If the recommendation pointed at a dropped option, fall back to one that survived
-        # rather than leaving the plan recommending something no longer present.
+        # If the recommendation pointed at a dropped option, fall back to a survivor.
         if kept_options and plan.recommended_option not in {o.name for o in kept_options}:
             removed.append(
                 RemovedClaim(

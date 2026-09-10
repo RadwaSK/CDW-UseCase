@@ -1,9 +1,6 @@
-"""Trace recording for graph nodes and tool calls.
-
-Payloads are sanitized before persistence: counts, names, and durations only —
-never prompts, raw model output, or model reasoning. Trace writes must never
-break a run, so failures here are logged and swallowed.
-"""
+"""Trace recording for graph nodes and tool calls. Payloads are sanitized to an
+allow-list (counts, names, durations) before persistence; write failures are
+logged and swallowed so tracing never breaks a run."""
 
 import logging
 import time
@@ -14,8 +11,8 @@ from app.db.session import SessionLocal
 
 logger = logging.getLogger(__name__)
 
-# Keys allowed into a persisted trace payload. Anything else is dropped rather
-# than stored, so a future node can't accidentally leak content into the trace.
+# Keys allowed into a persisted trace payload; anything else is dropped, so a
+# node can't leak content into the trace.
 ALLOWED_PAYLOAD_KEYS = {
     "evidence_count",
     "architecture_finding_count",
@@ -88,10 +85,8 @@ def record_event(
 
 @contextmanager
 def traced_node(state: dict, node: str):
-    """Record one node execution, including failures, with its duration.
-
-    Yields a dict the node fills with sanitized metrics to attach to the event.
-    """
+    """Record one node execution (or its failure) with duration. Yields a metrics
+    dict for the node to populate."""
     assessment_id = state.get("assessment_id", "")
     trace_id = state.get("trace_id", "")
     metrics: dict = {}

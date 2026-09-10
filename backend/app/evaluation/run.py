@@ -1,12 +1,8 @@
-"""Offline deterministic evaluation CLI.
+"""Offline deterministic evaluation CLI: python -m app.evaluation.run [--json]
+[--keep] [--reingest].
 
-    python -m app.evaluation.run [--json] [--keep] [--reingest]
-
-Always runs with fake embeddings and rule-based agents: the evaluation is a
-correctness gate for the workflow's logic, so it must produce the same numbers
-on every machine and cost nothing to run in CI. Model quality is a separate
-question that a paid judge would answer, and is deliberately not this gate.
-"""
+Always fake embeddings + rule-based agents — this gates the workflow's logic, not
+model quality, so it is reproducible and free to run in CI."""
 
 import argparse
 import json

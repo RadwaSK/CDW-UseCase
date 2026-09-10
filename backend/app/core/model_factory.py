@@ -1,9 +1,6 @@
-"""Single source of embedding (and, later, chat) model instances.
-
-No node/service should construct a provider client directly — call
-get_embeddings() so provider choice and the fake-embeddings test/budget
-switch stay in one place.
-"""
+"""Single source of model instances. Call get_embeddings() / get_chat_model()
+rather than constructing a provider client, so the provider choice and the
+fake-model switches stay in one place."""
 
 import hashlib
 import struct
@@ -12,13 +9,10 @@ from app.core.config import settings
 
 
 class FakeEmbeddings:
-    """Deterministic, offline embedder: same text always yields the same vector.
+    """Deterministic offline embedder: hashes each token into a normalized vector.
 
-    Used whenever settings.use_fake_embeddings is True (forced on in tests).
-    Not semantically meaningful — only stable, so retrieval logic and chunk
-    metadata can be tested without calling Azure and without cosine
-    similarity being pure noise (identical/near-identical text still scores
-    high on plain token hashing).
+    Not semantically meaningful, only stable — near-identical text still scores
+    high on cosine similarity, so retrieval logic can be tested without Azure.
     """
 
     def __init__(self, dimension: int = 1536):
@@ -67,12 +61,8 @@ def get_chat_model():
 
 
 def structured_completion(schema, system_prompt: str, user_content: str):
-    """One live model call returning an instance of `schema` (a Pydantic model).
-
-    Only the parsed structured fields are ever returned or stored — raw
-    completions and any reasoning text are discarded, so no chain-of-thought
-    reaches the trace or the report.
-    """
+    """One live model call returning an instance of `schema`. Only the parsed
+    fields are returned — raw completions and reasoning text are discarded."""
     model = get_chat_model().with_structured_output(schema)
     return model.invoke(
         [

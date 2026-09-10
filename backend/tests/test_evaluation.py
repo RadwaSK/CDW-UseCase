@@ -1,8 +1,5 @@
-"""The evaluation is a quality gate, so it needs its own tests.
-
-A gate that cannot fail is worthless: several of these deliberately feed the
-scorers bad input and assert that they say so.
-"""
+"""Tests for the evaluation gate itself. A gate that cannot fail is worthless, so
+several of these feed the scorers bad input and assert they catch it."""
 
 import json
 

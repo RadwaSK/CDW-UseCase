@@ -31,6 +31,6 @@ class ModernizationPlan(BaseModel):
     recommendation_rationale: str
     roadmap: list[RoadmapPhase]
     estimated_effort: Effort
-    # Whether the recommended work touches authn/authz — an approval trigger in Phase 3.
+    # Recommended work touches authn/authz — an approval-policy trigger.
     touches_auth: bool = False
     evidence: list[EvidenceReference] = Field(default_factory=list)

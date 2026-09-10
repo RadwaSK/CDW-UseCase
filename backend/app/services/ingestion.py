@@ -1,12 +1,6 @@
-"""Chunk + embed sample_data into document_chunks. Safe to run more than once.
-
-Re-running skips the embedding call for any chunk whose content hasn't
-changed (compares content_hash), and removes rows for chunks that no longer
-exist after re-chunking a file. This is what keeps repeated ingestion cheap
-against the embedding budget, not just correct.
-
-Run: python -m app.services.ingestion
-"""
+"""Chunk + embed sample_data into document_chunks. Idempotent: re-running only
+re-embeds chunks whose content_hash changed, and drops rows for chunks a file no
+longer produces. Run: python -m app.services.ingestion"""
 
 import hashlib
 import logging
@@ -35,10 +29,7 @@ def _iter_source_files(root: Path):
 
 
 def ingest_all() -> dict:
-    """Ingest every sample app and the shared engineering standards.
-
-    Returns a summary dict: {files, chunks_seen, chunks_embedded, chunks_reused, chunks_deleted}.
-    """
+    """Ingest every sample app plus the shared standards; return a counts summary."""
     data_dir = Path(settings.sample_data_dir)
     embeddings = get_embeddings()
     summary = {
@@ -117,8 +108,7 @@ def _ingest_folder(db, root, data_dir, embeddings, *, source_category, sample_ap
 
         if texts_to_embed:
             vectors = embeddings.embed_documents(texts_to_embed)
-            # strict: a provider returning fewer vectors than texts must fail loudly
-            # rather than silently leaving chunks unembedded.
+            # strict=True: a short vector list must fail, not leave chunks unembedded.
             for row, vector in zip(rows_needing_embedding, vectors, strict=True):
                 row.embedding = vector
             summary["chunks_embedded"] += len(texts_to_embed)

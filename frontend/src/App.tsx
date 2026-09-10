@@ -25,8 +25,7 @@ export default function App() {
   }, []);
 
   async function refreshTrace(assessmentId: string) {
-    // A trace failure shouldn't hide a successful assessment, so it's reported
-    // separately rather than replacing the report.
+    // A trace failure must not hide a successful assessment — report it separately.
     try {
       setTrace(await api.getTrace(assessmentId));
     } catch (e) {

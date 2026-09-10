@@ -1,9 +1,5 @@
-"""Simple, language-aware chunking: one chunker per file type, no deep parsing.
-
-Boundaries are picked so a chunk stays a coherent unit (a markdown section, a
-Python function/class) rather than an arbitrary line window, wherever that's
-cheap to determine. Everything else falls back to a fixed-size line window.
-"""
+"""Language-aware chunking: markdown by section, Python by top-level def/class,
+everything else by a fixed line window. Boundaries keep each chunk a coherent unit."""
 
 import ast
 from dataclasses import dataclass

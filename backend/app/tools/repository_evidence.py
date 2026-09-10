@@ -1,9 +1,5 @@
-"""Read-only evidence tool over the indexed chunks.
-
-Read-only is structural, not a promise: this wraps retrieval only, exposes no
-write path, and takes no caller-supplied filesystem path — the sample app is
-chosen from a fixed registry.
-"""
+"""Read-only evidence tool over the indexed chunks. Structurally read-only: it
+wraps retrieval, exposes no write path, and takes no caller-supplied file path."""
 
 from sqlalchemy.orm import Session
 

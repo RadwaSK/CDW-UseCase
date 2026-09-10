@@ -18,11 +18,8 @@ TICKET_PREFIX = "CHG-DEMO-"
 class MockServiceNowChangeTool:
     """Creates one simulated change ticket per assessment.
 
-    Idempotent by design: an assessment that already has a ticket gets that same
-    ticket back rather than a second one, so a resumed or replayed run can never
-    duplicate it. The DB also enforces this with a unique constraint on
-    assessment_id — belt and braces, since "exactly one ticket" is a safety
-    property, not just a nicety.
+    Idempotent: an assessment that already has a ticket gets that one back, not a
+    second. The DB also enforces this with a unique constraint on assessment_id.
     """
 
     def __init__(self, db: Session):

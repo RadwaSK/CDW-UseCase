@@ -1,12 +1,6 @@
-"""Create the pgvector extension and all tables. Safe to run repeatedly.
-
-MVP-scale schema management: the ORM models are the single source of truth,
-applied with create_all rather than versioned migrations. If this project ever
-needs to preserve data across a schema change, that's the point to introduce
-Alembic.
-
-Run: python -m app.db.init_db
-"""
+"""Create the pgvector extension and all tables; safe to run repeatedly. ORM
+models are the source of truth, applied with create_all, not migrations.
+Run: python -m app.db.init_db"""
 
 import logging
 

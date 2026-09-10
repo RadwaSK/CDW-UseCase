@@ -1,9 +1,6 @@
 """Graph behaviour: analysis, evidence discipline, revision loop, checkpointing.
-
-Every objective against this sample app surfaces critical PII/secret findings,
-so runs pause at the approval gate; tests that need a finished report resume
-with a decision. Approval-policy specifics live in test_approval.py.
-"""
+Runs against the legacy app always pause at the approval gate, so tests needing a
+finished report resume with a decision. Policy specifics are in test_approval.py."""
 
 import pytest
 
@@ -106,8 +103,7 @@ def test_unsupported_claim_is_removed_by_reviewer(ingested, assessment_record):
     assert decision.removed_claims, "reviewer accepted an unsupported claim"
 
     plan = state["final_report"].plan
-    # The unsupported option must be gone entirely, not merely have its citation
-    # stripped — otherwise the reader still sees a recommendation nothing backs.
+    # The unsupported option must be gone entirely, not just missing its citation.
     assert "Full rewrite in a new language" not in {o.name for o in plan.options}
     assert any("Full rewrite" in c.claim for c in decision.removed_claims)
 
@@ -119,10 +115,9 @@ def test_unsupported_claim_is_removed_by_reviewer(ingested, assessment_record):
         for ref in option.evidence:
             assert ref.chunk_id in valid_ids
 
-    # A surviving recommendation still has to be one of the offered options.
     assert plan.recommended_option in {o.name for o in plan.options}
 
-    # ...and the report must disclose it rather than quietly dropping it.
+    # The report must disclose the removal, not drop it silently.
     assert state["final_report"].removed_claims
     assert any("evidence" in limitation.lower() for limitation in state["final_report"].limitations)
 

@@ -1,9 +1,5 @@
-"""Pytest fixtures.
-
-Import order matters here: _enforce_test_environment() must run before any
-app.* import, since importing app.core.config instantiates Settings from
-whatever is currently in os.environ (see app/core/config.py).
-"""
+"""Pytest fixtures. _enforce_test_environment() must run before any app.* import,
+since app.core.config builds Settings from os.environ at import time."""
 
 import os
 
@@ -17,11 +13,8 @@ def _enforce_test_environment() -> None:
     os.environ["USE_FAKE_EMBEDDINGS"] = "true"
     os.environ["USE_FAKE_LLM"] = "true"
 
-    # Never emit LangSmith traces from the test suite: it would add a network
-    # call per graph node to an otherwise offline run and litter the demo
-    # project with junk. LangChain resolves the flag from either namespace, so
-    # both are pinned. Set here, before any app.* (and therefore any langchain)
-    # import, because langsmith caches the lookup on first read.
+    # Never emit LangSmith traces from the suite. Both namespaces, set before any
+    # langchain import (langsmith caches the lookup on first read).
     os.environ["LANGSMITH_TRACING"] = "false"
     os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
@@ -37,7 +30,7 @@ def _enforce_test_environment() -> None:
 
 _enforce_test_environment()
 
-# Only safe to import app.* below this point — see module docstring.
+# app.* imports only below this point — see module docstring.
 from app.db.init_db import init_db  # noqa: E402
 from app.db.models import Assessment  # noqa: E402
 from app.db.session import SessionLocal  # noqa: E402
@@ -60,11 +53,8 @@ def db_session():
 
 @pytest.fixture(autouse=True)
 def _clean_assessments(db_session):
-    """Assessments (and their cascaded trace events / tickets) reset per test.
-
-    document_chunks is intentionally left alone — ingestion is idempotent and
-    session-scoped fixtures reuse it across tests instead of re-embedding.
-    """
+    """Reset assessments (and cascaded trace events / tickets) per test.
+    document_chunks is left alone so session fixtures don't re-embed."""
     yield
     db_session.query(Assessment).delete()
     db_session.commit()

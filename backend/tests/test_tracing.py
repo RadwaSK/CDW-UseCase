@@ -1,10 +1,6 @@
-"""Observability guarantees for the agent nodes.
-
-The agent call has to happen *inside* traced_node. Opening the trace afterwards
-still produced a plausible-looking event, so the bug was invisible: durations
-excluded the slowest step, and a model failure escaped before any node_failed
-event could be written. These tests pin both properties.
-"""
+"""The agent call must run inside traced_node: otherwise durations exclude the
+slowest step and a model failure escapes before node_failed is written. These
+tests pin both, and fail against the pre-fix structure."""
 
 import json
 import time
@@ -29,8 +25,7 @@ GRAPH_NODES = {
     "report",
 }
 
-# Stands in for a prompt or raw model output leaking into the trace. It must not
-# appear in any persisted column.
+# Stands in for prompt/model-output text; must not appear in any persisted column.
 CANARY = "PROMPT-CANARY-do-not-persist-9f3a"
 
 
@@ -85,8 +80,7 @@ def test_agent_failure_persists_a_sanitized_node_failed_event(
     event = failures[0]
     assert event.error_class == "RuntimeError"
     assert event.duration_ms is not None
-    # The exception message is the most likely carrier of prompt text, so the
-    # trace records the exception's type and nothing from its message.
+    # Only the exception's type is recorded, never its message.
     assert CANARY not in json.dumps(event.payload)
     assert CANARY not in (event.error_class or "")
     assert set(event.payload).issubset(ALLOWED_PAYLOAD_KEYS)

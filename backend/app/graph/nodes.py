@@ -1,9 +1,5 @@
-"""LangGraph node implementations.
-
-Each node picks the deterministic rule-based path or a live model call based on
-settings.use_fake_llm, but the state contract and evidence requirements are
-identical either way.
-"""
+"""LangGraph node implementations. Each analyst/planner node picks the rule-based
+or the live-model path from settings.use_fake_llm; the state contract is identical."""
 
 import logging
 
@@ -135,11 +131,9 @@ def _model_plan(
     )
 
 
-# The agent call belongs *inside* traced_node: it is both the slowest step and the
-# one most likely to fail. Opening the trace afterwards timed only the bookkeeping
-# and, worse, let a model failure escape before any node_failed event could be
-# written — losing the trace exactly when it is most needed. `model` is recorded
-# before the call so a failed event still says which model was attempted.
+# The agent call runs inside traced_node so its duration is measured and a
+# failure is persisted as node_failed. `model` is set before the call so a
+# failed event still names the model that was attempted.
 def architecture_analyst_node(state: AssessmentState) -> dict:
     evidence = state.get("retrieved_evidence", [])
 
@@ -213,21 +207,14 @@ def reviewer_node(state: AssessmentState) -> dict:
 
 
 def should_revise(state: AssessmentState) -> str:
-    """Conditional edge: read the reviewer's decision, never re-derive it.
-
-    Re-deriving here would loop forever: the second pass still reports an
-    unsupported claim, but the revision budget is already spent.
-    """
+    """Read the reviewer's flag, never re-derive it — re-deriving loops forever
+    once the revision budget is spent but claims are still unsupported."""
     return "revise" if state.get("will_revise") else "report"
 
 
 def approval_gate_node(state: AssessmentState) -> dict:
-    """Apply the deterministic policy and, if required, pause for a human.
-
-    interrupt() suspends the graph here; the checkpointer persists everything so
-    the run resumes with identical state when the decision arrives. The value
-    passed to Command(resume=...) comes back as the return value of interrupt().
-    """
+    """Apply the deterministic policy; if approval is required, interrupt() to
+    suspend the graph. The Command(resume=...) value returns from interrupt()."""
     request = evaluate_approval_policy(
         state.get("assessment_id", ""),
         state.get("risk_findings", []),
@@ -301,12 +288,9 @@ def after_approval(state: AssessmentState) -> str:
 
 
 def ticket_node(state: AssessmentState) -> dict:
-    """Create the simulated change ticket. Never reached without approval.
-
-    The routing edge already guarantees this, but the guard is repeated here
-    because "no ticket without approval" is a safety property — it shouldn't
-    depend on one graph edge staying correct through future edits.
-    """
+    """Create the simulated change ticket. The routing edge already guarantees
+    approval; the guard below repeats it because "no ticket without approval" is
+    a safety property that shouldn't rest on one edge."""
     decision = state.get("approval_decision") or {}
     if decision.get("approved") is not True:
         raise RuntimeError("ticket_node reached without an explicit approval")

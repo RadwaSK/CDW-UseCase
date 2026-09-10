@@ -1,9 +1,5 @@
-"""Tool interfaces and the call-logging wrapper shared by every tool.
-
-Tools are defined behind Protocols so a real ServiceNow/CMDB integration can be
-dropped in later without touching the graph. No real third-party credentials
-exist in this repository.
-"""
+"""Tool Protocols and the shared call-logging wrapper. Protocols let a real
+ServiceNow/CMDB integration drop in without touching the graph."""
 
 import logging
 import time

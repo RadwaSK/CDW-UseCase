@@ -63,11 +63,8 @@ def create_assessment(
 def submit_approval(
     assessment_id: str, payload: ApprovalSubmission, db: Session = Depends(get_db)
 ) -> AssessmentDetailResponse:
-    """Resume a paused graph with a human decision.
-
-    Approval permits only the simulated change ticket — never code changes or
-    deployment.
-    """
+    """Resume a paused graph with a human decision. Approval permits only the
+    simulated change ticket — never code changes or deployment."""
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
         raise HTTPException(404, f"Assessment {assessment_id} not found")

@@ -1,8 +1,5 @@
-"""Typed LangGraph state passed between nodes.
-
-Architecture and security analysis run in parallel but write to different keys,
-so no reducer is needed for them — only `errors`, which any node may append to.
-"""
+"""Typed LangGraph state. The parallel analysts write to different keys, so only
+`errors` needs a reducer."""
 
 import operator
 from typing import Annotated, TypedDict

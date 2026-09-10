@@ -1,10 +1,6 @@
-"""The golden dataset: hand-written cases with the outcome each one must produce.
-
-Expectations here describe the *deterministic* behavior of the rule-based agents,
-which is what the offline evaluation exercises. They are the contract; when the
-harness disagrees with them, one of the two is wrong and the run fails loudly
-rather than adjusting itself to whatever the code currently does.
-"""
+"""The golden dataset: hand-written cases and the deterministic outcome each must
+produce. Expectations are the contract — a disagreement fails the run loudly
+rather than adjusting to whatever the code currently does."""
 
 import json
 from pathlib import Path
@@ -24,12 +20,10 @@ class EvalCase(BaseModel):
     expected_risk_level: str
     expected_key_findings: list[str] = Field(default_factory=list)
     expected_approval_required: bool
-    # Risk categories that must appear in the report. This is what keeps the
-    # cases distinct: overall risk collapses to "critical" for most of the legacy
-    # app, so without it every legacy case would assert the same thing.
+    # Risk categories that must appear — what keeps the legacy cases distinct,
+    # since overall risk collapses to "critical" for most of them.
     expected_finding_categories: list[str] = Field(default_factory=list)
-    # Only set on cases that exist to prove the reviewer strips unsupported
-    # claims; None means "not asserted either way".
+    # None = not asserted. Set only on cases that check the reviewer's stripping.
     expected_removed_claims: bool | None = None
 
 

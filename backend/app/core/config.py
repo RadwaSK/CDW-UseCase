@@ -1,9 +1,5 @@
-"""Centralized application settings, read once from the environment.
-
-No module should read os.environ directly — import `settings` from here.
-Env vars always win over the .env file, so conftest.py can force test-only
-values (USE_FAKE_EMBEDDINGS, etc.) without touching .env itself.
-"""
+"""Centralized settings — import `settings` rather than reading os.environ.
+Env vars win over .env, so conftest.py can force test-only values."""
 
 from functools import lru_cache
 

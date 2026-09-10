@@ -1,10 +1,6 @@
-"""Execute golden cases against the real graph and score the outcomes.
-
-Nothing here is mocked except the models themselves (fake embeddings + rule-based
-agents, forced by app.evaluation.run). The graph, retrieval, reviewer, approval
-policy, and ticket tool are the same code paths the API uses, so a passing
-evaluation is evidence about the shipped system rather than about a stub.
-"""
+"""Execute golden cases against the real graph and score the outcomes. Only the
+models are faked (via app.evaluation.run); the graph, retrieval, reviewer, policy,
+and ticket tool are the same code the API runs."""
 
 import re
 from dataclasses import dataclass, field
@@ -115,9 +111,8 @@ def _execute(case: EvalCase, decision: bool | None) -> RunOutcome:
 def _evidence_counts(report: AssessmentReport | None, valid_ids: set[str]) -> tuple[int, int]:
     """(findings whose every citation resolves to a real chunk, total findings).
 
-    Recomputed from the retrieved evidence rather than trusting the reviewer's own
-    verdict — the point is to check that the reviewer actually did its job. Counts
-    rather than a ratio, so the pass/fail check is an integer comparison.
+    Recomputed from the retrieved evidence rather than trusting the reviewer's
+    verdict — the point is to check the reviewer actually did its job.
     """
     if report is None:
         return 0, 0
@@ -147,12 +142,8 @@ def _content_words(phrase: str) -> set[str]:
 
 
 def _key_findings_matched(report: AssessmentReport | None, expected: list[str]) -> float:
-    """Informational only: fuzzy overlap between expected phrasing and the report.
-
-    Deliberately not a pass/fail gate — the expected strings are prose, and
-    scoring prose similarity with a keyword heuristic would make the gate a
-    measure of wording rather than of behavior.
-    """
+    """Informational only, never a pass/fail gate: fuzzy keyword overlap between
+    the expected phrasing and the report. Gating on it would measure wording."""
     if not expected:
         return 1.0
     if report is None:
@@ -176,12 +167,9 @@ def _key_findings_matched(report: AssessmentReport | None, expected: list[str]) 
 
 
 def _run_arms(case: EvalCase) -> list[RunOutcome]:
-    """Every approval arm the case's expectation implies.
-
-    A case that should pause is run three times, because "no ticket without
-    approval" has to hold when the decision is missing as well as when it is an
-    explicit denial — one arm each, plus the approval that should produce exactly one.
-    """
+    """Every approval arm the case implies. A pausing case runs three times —
+    decision missing, denied, approved — since "no ticket without approval" must
+    hold in all three."""
     if not case.expected_approval_required:
         return [_execute(case, DECISION_LEAVE_PENDING)]
     return [
@@ -251,11 +239,8 @@ def evaluate_case(case: EvalCase) -> CaseResult:
 
 
 def cleanup(results: list[CaseResult]) -> int:
-    """Delete the rows and checkpoints this evaluation created.
-
-    Assessments cascade to tickets and trace events; LangGraph's checkpoint tables
-    have no foreign key to them, so those are removed by thread id explicitly.
-    """
+    """Delete the rows and checkpoints this evaluation created. Assessments
+    cascade to tickets/trace events; checkpoint tables are cleared by thread id."""
     ids = [run.assessment_id for r in results for run in r.runs]
     if not ids:
         return 0

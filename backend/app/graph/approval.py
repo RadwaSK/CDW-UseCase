@@ -1,10 +1,6 @@
-"""Deterministic approval policy — a pure function, never a model decision.
-
-Whether a human must sign off is a governance rule, so it is evaluated from the
-structured findings with explicit, auditable reasons. Approval permits only the
-creation of a *simulated* change ticket; it never authorizes code changes or
-deployment.
-"""
+"""Deterministic approval policy: a pure function over the structured findings,
+never a model decision. Approval permits only a simulated change ticket, never
+code changes or deployment."""
 
 from app.models.approval import ApprovalRequest
 from app.models.findings import RiskFinding

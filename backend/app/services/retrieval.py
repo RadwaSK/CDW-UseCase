@@ -1,12 +1,8 @@
-"""Vector search over document_chunks, reranked by vector + lexical overlap.
+"""Vector search over document_chunks, reranked without an extra model call.
 
-Reranking strategy (kept transparent per the build brief): pgvector's cosine
-distance pulls a candidate pool, then each candidate's score is
-alpha * vector_similarity + (1 - alpha) * lexical_overlap, where
-lexical_overlap is plain token-set Jaccard similarity against the query. This
-favors chunks that are both semantically close and literally on-topic, and
-is cheap enough to run with no extra model call.
-"""
+pgvector cosine distance pulls a candidate pool; each candidate is then scored
+alpha * vector_similarity + (1 - alpha) * token-set Jaccard against the query,
+favoring chunks that are both semantically close and literally on-topic."""
 
 import re
 from pathlib import Path

@@ -1,11 +1,6 @@
-"""Deterministic rule-based stand-ins for the analyst/planner agents.
-
-Used whenever settings.use_fake_llm is True (always in tests). These are not
-pretending to be an LLM — they are keyword/pattern detectors over the same
-retrieved evidence the real agents see, so tests can assert exact findings
-without a live model call. Every finding cites the chunk that triggered it,
-which is what the evidence reviewer later validates.
-"""
+"""Deterministic rule-based stand-ins for the analyst/planner agents, used when
+settings.use_fake_llm is True. Pattern detectors over the same retrieved evidence
+the real agents see; every finding cites the chunk that triggered it."""
 
 import re
 
@@ -17,9 +12,8 @@ from app.models.plan import ModernizationOption, ModernizationPlan, RoadmapPhase
 # LLM overreaching on a request the evidence doesn't support. See fake_plan().
 FABRICATED_CHUNK_ID = "00000000-0000-0000-0000-000000000000"
 
-# A credential-shaped name assigned a *string literal*. Reading the same name
-# from the environment is the correct pattern and must not be flagged, so the
-# env-lookup case is excluded explicitly rather than matched on the name alone.
+# Credential-shaped name assigned a string literal. Reading it from the
+# environment is correct, so _ENV_LOOKUP_RE excludes that case explicitly.
 _SECRET_ASSIGNMENT_RE = re.compile(
     r"""(?im)^\s*\w*(?:api_key|secret|token|password|credential)\w*\s*=\s*['"][^'"]+['"]"""
 )
@@ -41,12 +35,8 @@ _BARE_RECORD_ARG_RE = re.compile(r",\s*(row|record|user|customer|item)\s*\)")
 
 
 def _logs_pii(content: str) -> bool:
-    """True only when a log call actually carries PII.
-
-    Naively matching a word like "row" anywhere in the chunk flags correct code
-    that logs a lookup key and a boolean, so the check is scoped to the logging
-    call itself and to what it passes.
-    """
+    """True only when a logging call itself carries PII — scoped to the call so a
+    stray "row" elsewhere in the chunk doesn't flag correct code."""
     for line in content.splitlines():
         if not _LOG_CALL_RE.search(line):
             continue
@@ -269,9 +259,8 @@ def fake_plan(
         ),
     ]
 
-    # Simulates an LLM overreaching when asked something the evidence can't answer:
-    # a rewrite recommendation citing a chunk that isn't in the evidence set. The
-    # evidence reviewer detects the dangling citation and removes it.
+    # Simulates an LLM overreaching: a rewrite option citing a chunk not in the
+    # evidence set, which the reviewer then detects and removes.
     if _asks_about_rewrite(objective):
         options.append(
             ModernizationOption(

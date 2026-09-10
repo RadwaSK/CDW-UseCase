@@ -2,8 +2,7 @@
 
 from app.tools.base import timed_call
 
-# Synthetic CMDB-style context. Stands in for what a real asset inventory would
-# return; deliberately fixed so the demo is reproducible.
+# Synthetic CMDB-style context, fixed so the demo is reproducible.
 _SERVICE_CONTEXT: dict[str, dict] = {
     "legacy_order_service": {
         "service_name": "Legacy Order Service",
