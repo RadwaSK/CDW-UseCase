@@ -8,6 +8,7 @@ identical either way.
 import logging
 
 from langgraph.types import interrupt
+from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.model_factory import structured_completion
@@ -84,58 +85,87 @@ def retrieve_evidence_node(state: AssessmentState) -> dict:
         }
 
 
+def _model_name() -> str:
+    return "deterministic-fake" if settings.use_fake_llm else settings.azure_openai_chat_deployment
+
+
+def _model_architecture_findings(
+    state: AssessmentState, evidence: list[RetrievedEvidence]
+) -> list[ArchitectureFinding]:
+    class _Out(BaseModel):
+        findings: list[ArchitectureFinding]
+
+    result = structured_completion(
+        _Out,
+        prompts.ARCHITECTURE_ANALYST,
+        f"Objective: {state['objective']}\n\nEvidence:\n{prompts.format_evidence(evidence)}",
+    )
+    return result.findings
+
+
+def _model_risk_findings(
+    state: AssessmentState, evidence: list[RetrievedEvidence]
+) -> list[RiskFinding]:
+    class _Out(BaseModel):
+        findings: list[RiskFinding]
+
+    result = structured_completion(
+        _Out,
+        prompts.SECURITY_ANALYST,
+        f"Objective: {state['objective']}\n\nEvidence:\n{prompts.format_evidence(evidence)}",
+    )
+    return result.findings
+
+
+def _model_plan(
+    state: AssessmentState,
+    evidence: list[RetrievedEvidence],
+    arch: list[ArchitectureFinding],
+    risks: list[RiskFinding],
+) -> ModernizationPlan:
+    findings_text = "\n".join(
+        [f"- [architecture] {f.title}: {f.description}" for f in arch]
+        + [f"- [risk/{f.severity}] {f.title}: {f.description}" for f in risks]
+    )
+    return structured_completion(
+        ModernizationPlan,
+        prompts.MODERNIZATION_PLANNER,
+        f"Objective: {state['objective']}\n\nSupported findings:\n{findings_text}\n\n"
+        f"Evidence:\n{prompts.format_evidence(evidence)}",
+    )
+
+
+# The agent call belongs *inside* traced_node: it is both the slowest step and the
+# one most likely to fail. Opening the trace afterwards timed only the bookkeeping
+# and, worse, let a model failure escape before any node_failed event could be
+# written — losing the trace exactly when it is most needed. `model` is recorded
+# before the call so a failed event still says which model was attempted.
 def architecture_analyst_node(state: AssessmentState) -> dict:
     evidence = state.get("retrieved_evidence", [])
-    if settings.use_fake_llm:
-        findings = fake_agents.fake_architecture_findings(evidence)
-    else:
-        from pydantic import BaseModel
-
-        class _Out(BaseModel):
-            findings: list[ArchitectureFinding]
-
-        result = structured_completion(
-            _Out,
-            prompts.ARCHITECTURE_ANALYST,
-            f"Objective: {state['objective']}\n\nEvidence:\n{prompts.format_evidence(evidence)}",
-        )
-        findings = result.findings
 
     with traced_node(state, "architecture") as metrics:
-        metrics["model"] = (
-            "deterministic-fake" if settings.use_fake_llm
-            else settings.azure_openai_chat_deployment
+        metrics["model"] = _model_name()
+        findings = (
+            fake_agents.fake_architecture_findings(evidence)
+            if settings.use_fake_llm
+            else _model_architecture_findings(state, evidence)
         )
         metrics["architecture_finding_count"] = len(findings)
-
-    return {"architecture_findings": findings}
+        return {"architecture_findings": findings}
 
 
 def security_analyst_node(state: AssessmentState) -> dict:
     evidence = state.get("retrieved_evidence", [])
-    if settings.use_fake_llm:
-        findings = fake_agents.fake_risk_findings(evidence)
-    else:
-        from pydantic import BaseModel
-
-        class _Out(BaseModel):
-            findings: list[RiskFinding]
-
-        result = structured_completion(
-            _Out,
-            prompts.SECURITY_ANALYST,
-            f"Objective: {state['objective']}\n\nEvidence:\n{prompts.format_evidence(evidence)}",
-        )
-        findings = result.findings
 
     with traced_node(state, "security") as metrics:
-        metrics["model"] = (
-            "deterministic-fake" if settings.use_fake_llm
-            else settings.azure_openai_chat_deployment
+        metrics["model"] = _model_name()
+        findings = (
+            fake_agents.fake_risk_findings(evidence)
+            if settings.use_fake_llm
+            else _model_risk_findings(state, evidence)
         )
         metrics["risk_finding_count"] = len(findings)
-
-    return {"risk_findings": findings}
+        return {"risk_findings": findings}
 
 
 def planner_node(state: AssessmentState) -> dict:
@@ -143,26 +173,15 @@ def planner_node(state: AssessmentState) -> dict:
     arch = state.get("architecture_findings", [])
     risks = state.get("risk_findings", [])
 
-    if settings.use_fake_llm:
-        plan = fake_agents.fake_plan(state["objective"], arch, risks, evidence)
-        model_name = "deterministic-fake"
-    else:
-        findings_text = "\n".join(
-            [f"- [architecture] {f.title}: {f.description}" for f in arch]
-            + [f"- [risk/{f.severity}] {f.title}: {f.description}" for f in risks]
-        )
-        plan = structured_completion(
-            ModernizationPlan,
-            prompts.MODERNIZATION_PLANNER,
-            f"Objective: {state['objective']}\n\nSupported findings:\n{findings_text}\n\n"
-            f"Evidence:\n{prompts.format_evidence(evidence)}",
-        )
-        model_name = settings.azure_openai_chat_deployment
-
     with traced_node(state, "planner") as metrics:
-        metrics["model"] = model_name
+        metrics["model"] = _model_name()
+        plan = (
+            fake_agents.fake_plan(state["objective"], arch, risks, evidence)
+            if settings.use_fake_llm
+            else _model_plan(state, evidence, arch, risks)
+        )
         metrics["option_count"] = len(plan.options)
-    return {"modernization_plan": plan, "status": "reviewing"}
+        return {"modernization_plan": plan, "status": "reviewing"}
 
 
 def reviewer_node(state: AssessmentState) -> dict:
