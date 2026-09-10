@@ -179,6 +179,34 @@ This is what makes the offline evaluation a real gate: it exercises the actual
 graph, retrieval, reviewer, policy, and tool code, with only the model boundary
 replaced.
 
+## LangSmith observability
+
+There are two separate trace mechanisms, and they are not interchangeable:
+
+- **The PostgreSQL `trace_events` table is the application's audit trail.** It is
+  sanitized (allow-listed keys only, exception types not messages), it is what
+  `GET /assessments/{id}/trace` and the UI trace panel read, and it is always on.
+- **LangSmith is developer/demo observability.** When enabled it captures the
+  full LangGraph node tree, Azure OpenAI request/response payloads, token counts,
+  and latencies — useful for watching a live run during a demo or debugging a
+  prompt, but *unsanitized*: it holds the raw prompts and model output.
+
+LangSmith is configured entirely from `settings.langsmith_*` (source of truth),
+which `app/core/observability.configure_langsmith()` copies into the `LANGSMITH_*`
+environment variables LangChain reads, once, in the FastAPI lifespan. It is
+**off by default**. `.env.example` ships `LANGSMITH_TRACING=false`; a developer
+opts in locally by setting it true and adding a personal key to their
+git-ignored `.env`.
+
+`conftest.py` and `app/evaluation/run.py` set `LANGSMITH_TRACING=false` before
+any import, so the test suite and the offline evaluation never emit a trace and
+CI needs no key. The offline guarantee holds regardless of what `.env` says.
+
+Using LangSmith against real assessment data in production would need a
+data-handling and privacy review first: traces leave the deployment boundary and
+carry unsanitized content, which is exactly what the PostgreSQL trace was
+designed to avoid.
+
 ## Where a real deployment would differ
 
 - **AuthN/AuthZ**: Entra ID on the API, with the approval endpoint restricted to a

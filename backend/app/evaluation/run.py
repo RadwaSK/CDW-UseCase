@@ -16,9 +16,15 @@ import sys
 
 
 def _enforce_offline() -> None:
-    """Must run before any app.* import — Settings reads os.environ at import time."""
+    """Must run before any app.* import — Settings reads os.environ at import time,
+    and langsmith caches its tracing lookup on first read.
+    """
     os.environ["USE_FAKE_EMBEDDINGS"] = "true"
     os.environ["USE_FAKE_LLM"] = "true"
+    # The evaluation is a correctness gate, not a traced run: keep it fully
+    # offline. LangChain reads the flag from either namespace.
+    os.environ["LANGSMITH_TRACING"] = "false"
+    os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
 
 _enforce_offline()

@@ -106,13 +106,14 @@ deadlock is fixed, and the fix is why `setup()` now runs at startup.
 | `AZURE_OPENAI_CHAT_DEPLOYMENT` | — | Chat deployment name |
 | `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | — | Embedding deployment name |
 | `OPENAI_API_KEY` / `OPENAI_CHAT_MODEL` / `OPENAI_EMBEDDING_MODEL` | — | Fallback provider |
-| `USE_FAKE_EMBEDDINGS` | `true` | Deterministic SHA-256 pseudo-embeddings. Forced on in tests and evaluation |
+| `USE_FAKE_EMBEDDINGS` | `true` | Deterministic token-hash embedder. Forced on in tests and evaluation |
 | `USE_FAKE_LLM` | `true` | Rule-based agents instead of live chat calls. Forced on in tests and evaluation |
 | `EMBEDDING_DIMENSION` | `1536` | Must match the deployed model |
 | `RETRIEVAL_TOP_K` | `6` | Chunks per query |
 | `MAX_REVISIONS` | `1` | Revision-loop budget |
 | `SAMPLE_DATA_DIR` | `sample_data` | Corpus root |
-| `LANGSMITH_TRACING` | `false` | Optional; local tracing works without it |
+| `LANGSMITH_TRACING` | `false` | Demo/dev observability (see below). Forced **off** in tests and CI |
+| `LANGSMITH_API_KEY` / `LANGSMITH_PROJECT` / `LANGSMITH_ENDPOINT` | — | Personal key stays local; project defaults to `multi-agent-repo-reviewer` |
 | `CORS_ALLOW_ORIGINS` | `http://localhost:5173` | Dev frontend origin |
 
 Tests and the evaluation set the two fake flags **before** any application import
@@ -154,6 +155,32 @@ gate *not* firing.
 The doubled ticket guard is intentional. "No ticket without approval" is a safety
 property; it shouldn't depend on a single graph edge staying correct through
 future edits.
+
+---
+
+## LangSmith observability
+
+Two separate trace mechanisms:
+
+- **PostgreSQL `trace_events` is the application audit trail** — sanitized
+  (allow-listed keys, exception types not messages), always on, and what the API
+  and UI trace panel read.
+- **LangSmith is demo/development observability** — the full LangGraph node tree,
+  Azure OpenAI payloads, token counts, latencies. Useful for narrating a live
+  demo or debugging a prompt, but *unsanitized*: it holds raw prompts and model
+  output.
+
+Configured from `settings.langsmith_*` (single source of truth), applied to the
+`LANGSMITH_*` env vars by `app/core/observability.configure_langsmith()` at
+startup. **Off by default.** Opt in locally by setting `LANGSMITH_TRACING=true`
+and adding a personal key to your git-ignored `.env`.
+
+`conftest.py` and `app/evaluation/run.py` force `LANGSMITH_TRACING=false` before
+any import, so **tests and CI never emit a trace and never need a key**.
+
+Pointing LangSmith at real assessment data in production would require a
+data-handling and privacy review first — traces leave the deployment boundary
+with unsanitized content, which is what the PostgreSQL trace exists to avoid.
 
 ---
 

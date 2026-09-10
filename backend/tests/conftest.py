@@ -17,6 +17,14 @@ def _enforce_test_environment() -> None:
     os.environ["USE_FAKE_EMBEDDINGS"] = "true"
     os.environ["USE_FAKE_LLM"] = "true"
 
+    # Never emit LangSmith traces from the test suite: it would add a network
+    # call per graph node to an otherwise offline run and litter the demo
+    # project with junk. LangChain resolves the flag from either namespace, so
+    # both are pinned. Set here, before any app.* (and therefore any langchain)
+    # import, because langsmith caches the lookup on first read.
+    os.environ["LANGSMITH_TRACING"] = "false"
+    os.environ["LANGCHAIN_TRACING_V2"] = "false"
+
     # Refuse to run against anything that isn't clearly a test database, so a
     # .env pointed at real data can't be mutated by a test run.
     db_url = os.environ.get("DATABASE_URL", "")

@@ -10,6 +10,7 @@ from app.api.assessments import router as assessments_router
 from app.api.health import router as health_router
 from app.api.sample_apps import router as sample_apps_router
 from app.core.config import settings
+from app.core.observability import configure_langsmith
 from app.db.init_db import init_db
 from app.graph.checkpointer import get_checkpointer
 
@@ -19,6 +20,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # Turn LangSmith tracing on/off from settings before anything runs a graph.
+    # In tests and the offline evaluation settings.langsmith_tracing is already
+    # False, so this only ever disables it there.
+    configure_langsmith()
+
     # Create schema on boot so a fresh `docker compose up` is enough. A failure
     # here must not kill the app — /health reports database status instead.
     try:

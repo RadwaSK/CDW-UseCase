@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     openai_chat_model: str = ""
     openai_embedding_model: str = ""
 
+    # LangSmith tracing config. This is the single source of truth; app.core.
+    # observability.configure_langsmith() copies it into the LANGSMITH_* env vars
+    # that LangChain reads, once at startup. Disabled by default and forced off
+    # in tests and the offline evaluation.
     langsmith_tracing: bool = False
     langsmith_api_key: str = ""
     langsmith_project: str = "multi-agent-repo-reviewer"
