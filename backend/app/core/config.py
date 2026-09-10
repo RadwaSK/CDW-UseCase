@@ -30,10 +30,11 @@ class Settings(BaseSettings):
 
     langsmith_tracing: bool = False
     langsmith_api_key: str = ""
-    langsmith_project: str = "cdw-usecase"
+    langsmith_project: str = "multi-agent-repo-reviewer"
     langsmith_endpoint: str = ""
 
     use_fake_embeddings: bool = False
+    use_fake_llm: bool = False
     embedding_dimension: int = 1536
     sample_data_dir: str = "sample_data"
     retrieval_top_k: int = 6
