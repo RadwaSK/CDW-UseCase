@@ -5,7 +5,7 @@ to detect, cite, and recommend against:
   1. String-formatted SQL (a SQL-injection-shaped weak query pattern).
   2. Logging a customer record, including PII, at INFO level.
 
-This module is never executed by the CDW-UseCase application itself; it is
+This module is never executed by the application itself; it is
 read-only evidence for the retrieval/assessment pipeline.
 """
 

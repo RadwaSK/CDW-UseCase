@@ -1,3 +1,5 @@
+name: multi-agent-repo-reviewer
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
