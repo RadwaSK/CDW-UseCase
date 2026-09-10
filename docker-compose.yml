@@ -5,13 +5,13 @@ services:
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
-      POSTGRES_DB: cdw_usecase_test
+      POSTGRES_DB: multi_agent_repo_reviewer_test
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d cdw_usecase_test"]
+      test: ["CMD-SHELL", "pg_isready -U app -d multi_agent_repo_reviewer_test"]
       interval: 5s
       timeout: 5s
       retries: 10

@@ -1,7 +1,7 @@
 [project]
-name = "cdw-usecase-backend"
+name = "multi-agent-repo-reviewer-backend"
 version = "0.1.0"
-description = "Enterprise Modernization Assessment & Change Orchestrator - backend"
+description = "Enterprise Modernization Assessment Multi-Agent System - backend"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -10,9 +10,9 @@ dependencies = [
     "pydantic-settings>=2.4",
     "sqlalchemy>=2.0",
     "psycopg[binary]>=3.2",
-    "alembic>=1.13",
     "pgvector>=0.3",
     "langgraph>=0.2",
+    "langgraph-checkpoint-postgres>=2.0",
     "langchain-core>=0.3",
     "langchain-openai>=0.2",
 ]
