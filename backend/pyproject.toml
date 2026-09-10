@@ -41,3 +41,12 @@ asyncio_mode = "auto"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
+# Pinned explicitly so CI lints the same rules regardless of the ruff version's
+# shifting defaults.
+select = ["E", "F", "I", "B", "BLE", "UP", "SIM", "RUF"]
+ignore = [
+    # Depends() in an argument default is FastAPI's own documented idiom.
+    "B008",
+]
