@@ -30,6 +30,7 @@ from app.db.models import DocumentChunk  # noqa: E402
 from app.db.session import SessionLocal  # noqa: E402
 from app.evaluation.dataset import load_cases  # noqa: E402
 from app.evaluation.harness import CaseResult, cleanup, evaluate_case  # noqa: E402
+from app.graph.checkpointer import get_checkpointer  # noqa: E402
 from app.services.ingestion import ingest_all  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,10 @@ logger = logging.getLogger(__name__)
 
 def _prepare(reingest: bool) -> dict:
     init_db()
+    # Run setup() now, before any case opens an assessment session. Against a
+    # fresh database its CREATE INDEX CONCURRENTLY migrations would otherwise
+    # deadlock against that session — see conftest.py's _initialized_db.
+    get_checkpointer()
     if reingest:
         # Chunks embedded by a different model live in a different vector space,
         # so re-embedding is the only way to make a local run match CI exactly.

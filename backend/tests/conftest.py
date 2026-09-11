@@ -34,12 +34,22 @@ _enforce_test_environment()
 from app.db.init_db import init_db  # noqa: E402
 from app.db.models import Assessment  # noqa: E402
 from app.db.session import SessionLocal  # noqa: E402
+from app.graph.checkpointer import get_checkpointer  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _initialized_db():
-    """Create extension + tables once per test session, before any DB access."""
+    """Create extension + tables, and run the checkpointer's setup(), before any
+    test can hold a transaction open.
+
+    setup()'s CREATE INDEX CONCURRENTLY blocks until every concurrent
+    transaction finishes. Run lazily instead, it deadlocks against the first
+    fixture holding one open (e.g. assessment_record, idle-in-transaction after
+    db.refresh()) — invisible locally once the indexes exist, but hits every CI
+    run against the service container's brand-new database.
+    """
     init_db()
+    get_checkpointer()
 
 
 @pytest.fixture

@@ -4,9 +4,14 @@ A stateful multi-agent workflow that assesses a legacy service against
 engineering standards, cites its evidence line-by-line, and stops for a human
 before it touches a change-management system.
 
-> **Demo application.** Every sample application, finding, and change ticket here
-> is synthetic. The system is read-only with respect to any code it analyzes, and
-> the ServiceNow integration is mocked — nothing leaves the machine.
+> **Demo application.** Every sample application, finding, CMDB record, and change
+> ticket here is synthetic — the ServiceNow integration is a local mock adapter
+> and no ticket reaches a real ServiceNow instance. The system is read-only with
+> respect to any code it analyzes. **In live demo mode** (`USE_FAKE_LLM=false`),
+> the objective and selected evidence chunks are sent to Azure OpenAI, and if
+> LangSmith is enabled they are also sent to LangSmith as detailed, unsanitized
+> traces — see [LangSmith observability](#langsmith-observability) below. With
+> the fake flags on (the default), nothing leaves the machine.
 
 ---
 
@@ -88,9 +93,39 @@ docker compose exec api python -m app.evaluation.run   # offline evaluation
 docker compose exec web npm test                  # frontend tests
 ```
 
-If the API ever hangs on the first assessment against a **brand-new** database,
-see the checkpointer note in [docs/architecture.md](docs/architecture.md) — that
-deadlock is fixed, and the fix is why `setup()` now runs at startup.
+If the API, `pytest`, or the evaluation ever hangs on first use against a
+**brand-new** database, see the checkpointer note in
+[docs/architecture.md](docs/architecture.md) — that deadlock is fixed by running
+`setup()` proactively (API startup, the test session fixture, and the
+evaluation's `_prepare()`) rather than lazily on first use.
+
+---
+
+## Live demo preparation
+
+Fake and live embeddings are **not interchangeable** — they don't share a vector
+space, so pgvector similarity between a fake-embedded chunk and a live-embedded
+query is meaningless. Before recording a live demo:
+
+```bash
+docker compose down -v          # fresh Postgres volume — do not reuse a fake-embedded DB
+docker compose up --build
+```
+
+In `.env`, set:
+```
+USE_FAKE_EMBEDDINGS=false
+USE_FAKE_LLM=false
+```
+
+Then re-ingest against the now-empty database:
+```bash
+docker compose exec api python -m app.services.ingestion
+```
+
+Only after a fresh volume + fresh ingestion will retrieval scores be meaningful.
+Re-running ingestion against a DB that already holds fake-embedded chunks does
+**not** fix this — the stale vectors have to be gone first.
 
 ---
 
@@ -136,6 +171,14 @@ Full walkthrough with talking points: **[docs/demo-script.md](docs/demo-script.m
 The two sample apps are deliberately different: one plants real defects, the
 other follows the standards. Without the clean one there is no way to show the
 gate *not* firing.
+
+**What an approved ticket means.** `CHG-DEMO-0001` is a row in this app's own
+`change_tickets` table, created by a local mock adapter — it is not sent to and
+does not exist in any real ServiceNow instance. Approving it records that a
+human reviewed the assessment's findings and authorized the recommended
+remediation as a change request; it is not proof the sample application is
+"broken" (the findings themselves are that evidence) and it does not modify any
+code or infrastructure.
 
 ---
 
